@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <header class="topbar">
@@ -156,7 +156,7 @@
         </div>
       </article>
 
-      <!-- TARJETA DE ACTUALIZACIÓN Y EVIDENCIA -->
+      <!-- TARJETA 2: CONFIRMACIÓN DE DATOS Y EVIDENCIA FOTOGRÁFICA -->
       <article class="card form-card">
         <div class="card-header">
           <h2>2. Confirmación de Datos y Evidencia Fotográfica</h2>
@@ -280,6 +280,96 @@
 
         <div id="mensajeGuardado" class="alert hidden"></div>
       </article>
+
+      <!-- TARJETA 3: ACTIVIDAD ADICIONAL — CAPACITACIÓN Y ENTREGA DE CERTIFICADOS -->
+      <article id="seccionCertificados" class="card cert-card hidden">
+        <div class="card-header row-between">
+          <div>
+            <span class="eyebrow-cert">🔓 SECCIÓN DESBLOQUEADA · ACTIVIDAD ADICIONAL</span>
+            <h2>3. Capacitación Virtual y Entrega de Certificados</h2>
+          </div>
+          <span class="badge badge-info">Mínimo 2 / semana</span>
+        </div>
+
+        <div class="cert-info-box">
+          <p class="cert-desc">
+            Como parte de tu formación integral en <strong>Jóvenes en Acción 4</strong>, esta es una
+            <strong>actividad adicional de cumplimiento obligatorio</strong> que podrás desarrollar de manera continua
+            <strong>a partir del 29</strong>.
+          </p>
+          <ul class="cert-rules">
+            <li>📌 Ingresa a la plataforma oficial de cursos gratuitos <strong>Capacítate para el Empleo</strong>.</li>
+            <li>📌 Completa los módulos de tu interés y descarga tus diplomas aprobados.</li>
+            <li>📌 Debes cargar en este apartado <strong>al menos dos (2) certificados por semana</strong> como respaldo de tu avance.</li>
+          </ul>
+
+          <a
+            href="https://capacitateparaelempleo.org/cursos"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-primary btn-platform"
+          >
+            🎓 Ir a Capacítate para el Empleo (Abrir Cursos) ↗
+          </a>
+        </div>
+
+        <form id="formCertificado" class="cert-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="inputNombreCurso">Nombre del Curso Aprobado *</label>
+              <input
+                type="text"
+                id="inputNombreCurso"
+                maxlength="120"
+                placeholder="Ej: Técnico en Informática / Atención al Cliente"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="selectSemanaCert">Semana de Entrega *</label>
+              <select id="selectSemanaCert" required>
+                <option value="">-- Selecciona semana --</option>
+                <option value="Semana 1 (Desde el 29)">Semana 1 (Desde el 29)</option>
+                <option value="Semana 2">Semana 2</option>
+                <option value="Semana 3">Semana 3</option>
+                <option value="Semana 4">Semana 4</option>
+                <option value="Semana Adicional">Semana Adicional</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="foto-section cert-upload-box">
+            <label class="foto-label">Archivo del Certificado (PDF o Imagen JPG/PNG) *</label>
+            <p class="foto-hint">
+              En lugar de fotografía de asistencia, selecciona aquí el documento PDF o captura nítida de tu certificado descargado (máx. 8 MB).
+            </p>
+
+            <div class="foto-actions">
+              <label for="inputArchivoCertificado" class="btn btn-outline">
+                📄 Seleccionar Certificado (PDF o Imagen)
+              </label>
+              <input
+                type="file"
+                id="inputArchivoCertificado"
+                accept="application/pdf,image/*"
+                class="hidden-file"
+              />
+            </div>
+
+            <div id="certFileInfo" class="cert-file-pill hidden">
+              <span id="lblNombreArchivoCert">archivo.pdf</span>
+              <button type="button" id="btnQuitarCert" class="btn-remove-foto">✕ Quitar</button>
+            </div>
+          </div>
+
+          <button type="submit" id="btnSubirCertificado" class="btn btn-primary btn-lg">
+            📤 Subir Certificado de Capacitación
+          </button>
+        </form>
+
+        <div id="mensajeCertificado" class="alert hidden"></div>
+      </article>
     </section>
   </main>
 
@@ -308,6 +398,6 @@
     }
   </script>
 
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
