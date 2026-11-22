@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jóvenes en Acción 4 — Carchi</title>
+<meta name="theme-color" content="#1B4B43">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <p class="program">Jóvenes en Acción 4 · Carchi</p>
+    <h1 id="headerTitle">Buscar tu registro</h1>
+    <div class="steps">
+      <div class="step-dot active" data-step="1"></div>
+      <div class="step-dot" data-step="2"></div>
+      <div class="step-dot" data-step="3"></div>
+    </div>
+    <p class="step-label" id="stepLabel">Paso 1 de 3 — Consulta tu cédula</p>
+  </div>
+
+  <main>
+
+    <!-- ===================== PASO 1: BÚSQUEDA ===================== -->
+    <section class="screen active" id="screen-1">
+      <div class="search-hero">
+        <div class="big-id">#️⃣</div>
+        <p>Escribe tu número de cédula para ver tu registro y subir tu evidencia.</p>
+      </div>
+
+      <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="10"
+             class="cedula-input" id="cedulaInput" placeholder="0000000000" autocomplete="off">
+      <p class="hint">10 dígitos, sin guiones ni espacios</p>
+
+      <div class="alert error" id="searchError"></div>
+      <div class="alert info" id="searchInfo"></div>
+    </section>
+
+    <!-- ===================== PASO 2: FICHA ===================== -->
+    <section class="screen" id="screen-2">
+      <div class="card">
+        <h2>Tu registro actual</h2>
+        <p class="ficha-name" id="fName">—</p>
+        <p class="ficha-id" id="fCedula">—</p>
+
+        <div class="tutor-badge" id="fTutorBadge">
+          Tutor General: —
+        </div>
+
+        <div class="ficha-grid">
+          <div class="ficha-row"><span class="k">Cantón domicilio</span><span class="v" id="fCanton">—</span></div>
+          <div class="ficha-row"><span class="k">Hoja / Grupo en base</span><span class="v" id="fHoja">—</span></div>
+          <div class="ficha-row"><span class="k">Horario / Convocatoria</span><span class="v" id="fHorario">—</span></div>
+          <div class="ficha-row"><span class="k">Grupo de apoyo</span><span class="v" id="fGrupoApoyo">—</span></div>
+          <div class="ficha-row"><span class="k">Subtutor / Reasignación</span><span class="v" id="fSubtutorActual">—</span></div>
+          <div class="ficha-row"><span class="k">Cantón de ubicación</span><span class="v" id="fCantonUbicacionActual">—</span></div>
+          <div class="ficha-row"><span class="k">Estado de estudios</span><span class="v" id="fEstudiaActual">—</span></div>
+        </div>
+      </div>
+
+      <div class="alert info show" id="fichaStatusBanner" style="margin-top:0;">
+        La evidencia fotográfica que subas se guardará en la carpeta de validación de tu Tutor General.
+      </div>
+    </section>
+
+    <!-- ===================== PASO 3: ACTUALIZACIÓN (1 VEZ) + EVIDENCIA ===================== -->
+    <section class="screen" id="screen-3">
+
+      <!-- MODO A: Primera vez (permite actualizar estado de estudios, subtutor/reasignación y cantón donde está ubicado) -->
+      <div class="card" id="cardDatosEditable">
+        <h2>Actualización de datos (solo una vez)</h2>
+
+        <label>¿Estudias actualmente? <span class="req">*</span></label>
+        <div class="radio-group" id="estudiaRadioGroup">
+          <label class="radio-option"><input type="radio" name="estudiaBool" value="Sí"> Sí estudio</label>
+          <label class="radio-option"><input type="radio" name="estudiaBool" value="No"> No estudio</label>
+        </div>
+
+        <div id="bloqueDondeEstudia" style="display:none; margin-top: 14px;">
+          <label for="dondeEstudia">¿Dónde estudias? <span class="req">*</span></label>
+          <select id="dondeEstudia">
+            <option value="">Selecciona una opción</option>
+            <option value="Universidad">Universidad</option>
+            <option value="Instituto">Instituto</option>
+            <option value="Colegio">Colegio</option>
+          </select>
+
+          <label for="institucionNombre" style="margin-top: 12px;">Nombre de la institución (opcional)</label>
+          <input type="text" id="institucionNombre" placeholder="Ej: UPEC, IST Vicente Fierro, Unidad Educativa...">
+        </div>
+
+        <label for="subtutorReasignacion" style="margin-top: 16px;">Subtutor / Reasignación <span class="req">*</span></label>
+        <select id="subtutorReasignacion" required>
+          <option value="">Selecciona una opción</option>
+          <option value="A1 Ximena Rodríguez">A1 Ximena Rodríguez</option>
+          <option value="A2 Patricio Enríquez">A2 Patricio Enríquez</option>
+          <option value="Campamento Tulcán">Campamento Tulcán</option>
+          <option value="Campamento Bolívar">Campamento Bolívar</option>
+          <option value="Estación de pesaje">Estación de pesaje</option>
+          <option value="Puntos digitales">Puntos digitales</option>
+          <option value="Grupo Prioritario">Grupo Prioritario</option>
+          <option value="Grupo Rumichaca">Grupo Rumichaca</option>
+          <option value="Tenencia política">Tenencia política</option>
+          <option value="Punto digital">Punto digital</option>
+        </select>
+
+        <label for="cantonUbicado" style="margin-top: 16px;">¿En qué cantón estás ubicado actualmente? <span class="req">*</span></label>
+        <select id="cantonUbicado" required>
+          <option value="">Selecciona el cantón</option>
+          <option value="Tulcán">Tulcán</option>
+          <option value="San Pedro de Huaca">San Pedro de Huaca</option>
+          <option value="Montúfar">Montúfar</option>
+          <option value="Mira">Mira</option>
+          <option value="Bolívar">Bolívar</option>
+          <option value="Espejo">Espejo</option>
+          <option value="Otro cantón">Otro cantón</option>
+        </select>
+      </div>
+
+      <!-- MODO B: Ya actualizó sus datos anteriormente (bloqueado, solo lectura) -->
+      <div class="card" id="cardDatosBloqueado" style="display:none; background:#F0F6F3; border-color:#B7D4C8;">
+        <h2 style="color:#2E7D5B;">✓ Cambios realizados anteriormente</h2>
+        <p style="margin:0 0 10px; font-size:14px; color:#1C2420;">
+          Tus datos ya quedaron registrados y bloqueados en el sistema:
+        </p>
+        <div class="ficha-grid" style="margin-top:6px;">
+          <div class="ficha-row">
+            <span class="k">Estado estudios:</span>
+            <span class="v" id="estudiaGuardadoTexto" style="color:#1B4B43;">—</span>
+          </div>
+          <div class="ficha-row">
+            <span class="k">Subtutor / Reasignación:</span>
+            <span class="v" id="subtutorGuardadoTexto" style="color:#1B4B43;">—</span>
+          </div>
+          <div class="ficha-row" style="border-bottom:none;">
+            <span class="k">Cantón ubicado:</span>
+            <span class="v" id="cantonGuardadoTexto" style="color:#1B4B43;">—</span>
+          </div>
+        </div>
+        <p class="hint" style="text-align:left; margin-top:8px;">
+          A partir de ahora, únicamente está habilitada la carga de tu evidencia fotográfica.
+        </p>
+      </div>
+
+      <!-- EVIDENCIA FOTOGRÁFICA (siempre habilitada) -->
+      <div class="card">
+        <h2>Evidencia fotográfica <span class="req">*</span></h2>
+        <div class="selfie-box">
+          <img id="selfiePreview" class="selfie-preview" alt="Vista previa de la evidencia">
+          <input type="file" id="selfieFile" accept="image/*" capture="user" style="display:none">
+          <button type="button" class="btn-capture" id="btnCapture">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>
+            Tomar / subir evidencia fotográfica
+          </button>
+          <p class="selfie-status" id="selfieStatus">Aún no se ha seleccionado la foto</p>
+        </div>
+
+        <label for="observacionFoto" style="margin-top: 14px;">Observación o actividad (opcional)</label>
+        <input type="text" id="observacionFoto" placeholder="Ej: Asistencia jornada mañana / actividad realizada">
+      </div>
+
+      <div class="alert error" id="formError"></div>
+    </section>
+
+    <!-- ===================== ÉXITO ===================== -->
+    <section class="screen" id="screen-success">
+      <div class="success-box">
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <h2 id="successTitle">Registro guardado</h2>
+        <p id="successDetail">Tu información y tu evidencia fotográfica se enviaron correctamente para validación.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="footer-bar" id="footerBar">
+    <div class="footer-inner" id="footerInner"></div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
