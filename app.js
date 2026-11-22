@@ -158,7 +158,7 @@ function renderizarFichaJoven(reg) {
     selectEstudia.required = true;
     selectSubtutor.required = true;
     selectEstudia.value = '';
-    selectSubtutor.value = 'Sin novedad (Mantiene grupo)';
+    selectSubtutor.value = '';
     subtituloFormulario.textContent =
       'Confirma si estudias actualmente, verifica tu subtutor y adjunta tu fotografía de asistencia.';
     btnGuardar.textContent = 'Guardar Registro y Subir Evidencia';
