@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=3" />
 </head>
 <body>
   <header class="topbar">
@@ -68,7 +68,7 @@
           <span id="badgeEstado" class="badge badge-pending">Pendiente</span>
         </div>
 
-        <!-- BANNER DESTACADO DE FECHA DE CONVOCATORIA (N23..D4) -->
+        <!-- BANNER DESTACADO DE FECHA DE CONVOCATORIA -->
         <div id="bannerFechaConvocatoria" class="fecha-banner hidden">
           <span class="fecha-icon">📅</span>
           <div>
@@ -171,21 +171,15 @@
             <div class="form-grid">
               <div class="form-group">
                 <label for="selectEstudia">¿Estudia actualmente? *</label>
-                <select id="selectEstudia" required>
+                <select
+                  id="selectEstudia"
+                  required
+                  onchange="toggleCampoDondeEstudia(this.value)"
+                >
                   <option value="">-- Selecciona una opción --</option>
                   <option value="Sí">Sí</option>
                   <option value="No">No</option>
                 </select>
-              </div>
-
-              <div class="form-group hidden" id="grupoDondeEstudia">
-                <label for="inputDondeEstudia">¿Dónde estudia? (Institución / Universidad) *</label>
-                <input
-                  type="text"
-                  id="inputDondeEstudia"
-                  maxlength="120"
-                  placeholder="Ej: UPEC / Instituto Vicente Fierro / Colegio..."
-                />
               </div>
 
               <div class="form-group">
@@ -201,6 +195,17 @@
                   <option value="Apoyo comunitario">Apoyo comunitario</option>
                   <option value="Grupo Prioritario">Grupo Prioritario</option>
                 </select>
+              </div>
+
+              <!-- CAMPO DESPLEGABLE AL ELEGIR "Sí" -->
+              <div class="form-group full-width hidden" id="grupoDondeEstudia" style="display: none;">
+                <label for="inputDondeEstudia">¿Dónde estudia? (Institución / Universidad / Colegio) *</label>
+                <input
+                  type="text"
+                  id="inputDondeEstudia"
+                  maxlength="120"
+                  placeholder="Escribe el nombre de tu Universidad, Instituto o Colegio..."
+                />
               </div>
 
               <div class="form-group hidden" id="grupoCantonUbicacion">
@@ -282,6 +287,27 @@
     <p>Programa Jóvenes en Acción 4 · Provincia del Carchi · Versión V12</p>
   </footer>
 
-  <script src="app.js"></script>
+  <!-- Control inmediato para el despliegue de "¿Dónde estudia?" -->
+  <script>
+    function toggleCampoDondeEstudia(valor) {
+      var grupo = document.getElementById('grupoDondeEstudia');
+      var input = document.getElementById('inputDondeEstudia');
+      if (!grupo || !input) return;
+
+      if (valor === 'Sí') {
+        grupo.classList.remove('hidden');
+        grupo.style.display = 'block';
+        input.required = true;
+        input.focus();
+      } else {
+        grupo.classList.add('hidden');
+        grupo.style.display = 'none';
+        input.required = false;
+        input.value = '';
+      }
+    }
+  </script>
+
+  <script src="app.js?v=3"></script>
 </body>
 </html>
