@@ -1,5 +1,5 @@
 // =========================================================================
-// FRONTEND APP.JS — JÓVENES EN ACCIÓN 4 · CARCHI (VERSIÓN V12)
+// FRONTEND APP.JS — JÓVENES EN ACCIÓN 4 · CARCHI (VERSIÓN V12 - REV 3)
 // =========================================================================
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbxqPXZgf_m5RBI8vZQTBmMjqP0comWW6mQDP1CqRpRnsj57aMO2WM-9v0-dv94rTYnJ8A/exec';
@@ -60,17 +60,23 @@ inputCedula.addEventListener('input', () => {
   inputCedula.value = inputCedula.value.replace(/\D/g, '').slice(0, 10);
 });
 
-// Desplegar "¿Dónde estudia?" al elegir "Sí"
-selectEstudia.addEventListener('change', () => {
+// Función centralizada para mostrar u ocultar "¿Dónde estudia?"
+function actualizarVisibilidadDondeEstudia() {
+  if (!selectEstudia || !grupoDondeEstudia || !inputDondeEstudia) return;
+
   if (selectEstudia.value === 'Sí') {
     grupoDondeEstudia.classList.remove('hidden');
+    grupoDondeEstudia.style.display = 'block';
     inputDondeEstudia.required = true;
   } else {
     grupoDondeEstudia.classList.add('hidden');
+    grupoDondeEstudia.style.display = 'none';
     inputDondeEstudia.required = false;
     inputDondeEstudia.value = '';
   }
-});
+}
+
+selectEstudia.addEventListener('change', actualizarVisibilidadDondeEstudia);
 
 // Buscar cédula
 formBuscar.addEventListener('submit', async (e) => {
@@ -163,6 +169,7 @@ function renderizarFichaJoven(reg) {
     selectEstudia.required = false;
     selectSubtutor.required = false;
     grupoDondeEstudia.classList.add('hidden');
+    grupoDondeEstudia.style.display = 'none';
     inputDondeEstudia.required = false;
     subtituloFormulario.textContent =
       'Tus datos base ya fueron confirmados. Sube aquí tu nueva fotografía de asistencia o evidencia.';
@@ -175,9 +182,7 @@ function renderizarFichaJoven(reg) {
     selectSubtutor.required = true;
     selectEstudia.value = '';
     selectSubtutor.value = '';
-    grupoDondeEstudia.classList.add('hidden');
-    inputDondeEstudia.required = false;
-    inputDondeEstudia.value = '';
+    actualizarVisibilidadDondeEstudia();
     subtituloFormulario.textContent =
       'Confirma si estudias actualmente, verifica tu subtutor y adjunta tu fotografía de asistencia.';
     btnGuardar.textContent = 'Guardar Registro y Subir Evidencia';
