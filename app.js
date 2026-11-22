@@ -1,272 +1,379 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jóvenes en Acción 4 · Carchi — Control y Evidencias</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <span class="badge-program">JÓVENES EN ACCIÓN 4 · CARCHI</span>
-        <h1>Registro de Asistencia, Reasignación y Evidencia</h1>
-      </div>
-      <div class="status-pill" id="apiStatusPill">
-        <span class="dot"></span>
-        <span>Sistema V12 en línea</span>
-      </div>
-    </div>
-  </header>
+// =========================================================================
+// FRONTEND APP.JS — JÓVENES EN ACCIÓN 4 · CARCHI (VERSIÓN V12)
+// =========================================================================
 
-  <main class="container">
-    <!-- PASO 1: BUSCADOR POR CÉDULA -->
-    <section class="card search-card">
-      <div class="card-header">
-        <h2>1. Consulta por Número de Cédula</h2>
-        <p>Ingresa los 10 dígitos de tu cédula para verificar tu convocatoria, fecha, turno y tutor.</p>
-      </div>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxqPXZgf_m5RBI8vZQTBmMjqP0comWW6mQDP1CqRpRnsj57aMO2WM-9v0-dv94rTYnJ8A/exec';
+const TOKEN_SEGURIDAD = 'JEA4Carchi2026';
 
-      <form id="formBuscar" class="search-form" autocomplete="off">
-        <div class="input-group">
-          <input
-            type="text"
-            id="inputCedula"
-            inputmode="numeric"
-            maxlength="10"
-            placeholder="Ej: 0402010631"
-            required
-          />
-          <button type="submit" id="btnBuscar" class="btn btn-primary">
-            Buscar Registro
-          </button>
-        </div>
-        <small class="hint">Solo números (10 dígitos). Si empieza con 0, inclúyelo.</small>
-      </form>
+let registroActual = null;
+let fotoBase64 = '';
+let fotoMime = 'image/jpeg';
 
-      <div id="mensajeBusqueda" class="alert hidden"></div>
-    </section>
+// Elementos del DOM
+const formBuscar = document.getElementById('formBuscar');
+const inputCedula = document.getElementById('inputCedula');
+const btnBuscar = document.getElementById('btnBuscar');
+const mensajeBusqueda = document.getElementById('mensajeBusqueda');
+const seccionResultado = document.getElementById('seccionResultado');
 
-    <!-- PASO 2: FICHA DEL JOVEN Y FORMULARIO -->
-    <section id="seccionResultado" class="hidden">
-      <!-- TARJETA DE INFORMACIÓN DEL JOVEN -->
-      <article class="card info-card">
-        <div class="card-header row-between">
-          <div>
-            <span class="eyebrow">REGISTRO ENCONTRADO</span>
-            <h2 id="lblNombre">—</h2>
-          </div>
-          <span id="badgeEstado" class="badge badge-pending">Pendiente</span>
-        </div>
+const lblNombre = document.getElementById('lblNombre');
+const badgeEstado = document.getElementById('badgeEstado');
+const bannerFechaConvocatoria = document.getElementById('bannerFechaConvocatoria');
+const lblFechaConvocatoria = document.getElementById('lblFechaConvocatoria');
+const lblCedula = document.getElementById('lblCedula');
+const lblCanton = document.getElementById('lblCanton');
+const lblHojaActual = document.getElementById('lblHojaActual');
+const lblTutor = document.getElementById('lblTutor');
+const lblHorario = document.getElementById('lblHorario');
+const lblGrupoApoyo = document.getElementById('lblGrupoApoyo');
+const lblSubtutorActual = document.getElementById('lblSubtutorActual');
+const lblEstudiaActual = document.getElementById('lblEstudiaActual');
 
-        <!-- BANNER DESTACADO DE FECHA DE CONVOCATORIA (N23..D4) -->
-        <div id="bannerFechaConvocatoria" class="fecha-banner hidden">
-          <span class="fecha-icon">📅</span>
-          <div>
-            <small>FECHA DE CONVOCATORIA</small>
-            <strong id="lblFechaConvocatoria">—</strong>
-          </div>
-        </div>
+const btnToggleAdmin = document.getElementById('btnToggleAdmin');
+const boxAdminReasignar = document.getElementById('boxAdminReasignar');
+const selectNuevaHoja = document.getElementById('selectNuevaHoja');
+const inputPinAdmin = document.getElementById('inputPinAdmin');
+const btnEjecutarTraslado = document.getElementById('btnEjecutarTraslado');
+const mensajeAdmin = document.getElementById('mensajeAdmin');
 
-        <div class="grid-datos">
-          <div class="dato-box">
-            <span class="dato-label">Cédula</span>
-            <strong id="lblCedula">—</strong>
-          </div>
-          <div class="dato-box">
-            <span class="dato-label">Cantón Domicilio</span>
-            <strong id="lblCanton">—</strong>
-          </div>
-          <div class="dato-box">
-            <span class="dato-label">Pestaña / Grupo Actual</span>
-            <strong id="lblHojaActual">—</strong>
-          </div>
-          <div class="dato-box">
-            <span class="dato-label">Tutor General</span>
-            <strong id="lblTutor">—</strong>
-          </div>
-          <div class="dato-box">
-            <span class="dato-label">Turno / Horario</span>
-            <strong id="lblHorario">—</strong>
-          </div>
-          <div class="dato-box">
-            <span class="dato-label">Grupo de Apoyo / Dependencia</span>
-            <strong id="lblGrupoApoyo">—</strong>
-          </div>
-          <div class="dato-box">
-            <span class="dato-label">Subtutor / Reasignación</span>
-            <strong id="lblSubtutorActual">—</strong>
-          </div>
-          <div class="dato-box">
-            <span class="dato-label">¿Estudia actualmente?</span>
-            <strong id="lblEstudiaActual">—</strong>
-          </div>
-        </div>
+const formRegistro = document.getElementById('formRegistro');
+const bloqueActualizacionDatos = document.getElementById('bloqueActualizacionDatos');
+const subtituloFormulario = document.getElementById('subtituloFormulario');
+const selectEstudia = document.getElementById('selectEstudia');
+const selectSubtutor = document.getElementById('selectSubtutor');
+const grupoCantonUbicacion = document.getElementById('grupoCantonUbicacion');
+const selectCantonUbicado = document.getElementById('selectCantonUbicado');
+const inputObservacion = document.getElementById('inputObservacion');
 
-        <!-- PANEL ADMINISTRATIVO DE TRASLADO CON PIN 2026 -->
-        <div class="admin-panel">
-          <button type="button" id="btnToggleAdmin" class="btn-link">
-            🔒 Opciones de Tutor: Trasladar joven a otra hoja / grupo
-          </button>
+const inputFotoCamara = document.getElementById('inputFotoCamara');
+const inputFotoGaleria = document.getElementById('inputFotoGaleria');
+const previewContainer = document.getElementById('previewContainer');
+const imgPreview = document.getElementById('imgPreview');
+const btnQuitarFoto = document.getElementById('btnQuitarFoto');
+const btnGuardar = document.getElementById('btnGuardar');
+const mensajeGuardado = document.getElementById('mensajeGuardado');
 
-          <div id="boxAdminReasignar" class="admin-box hidden">
-            <p class="admin-note">
-              Traslada físicamente este registro hacia otra pestaña de la Base Maestra (conservando su cantón de domicilio y actualizando el Buscador).
-            </p>
-            <div class="admin-grid">
-              <div>
-                <label for="selectNuevaHoja">Pestaña / Grupo Destino</label>
-                <select id="selectNuevaHoja">
-                  <option value="">-- Selecciona destino --</option>
-                  <option value="Grupo Prioritario">Grupo Prioritario</option>
-                  <option value="Fin de Semana">Fin de Semana</option>
-                  <option value="Ximena">Ximena</option>
-                  <option value="Patricio">Patricio</option>
-                  <option value="Tulcán">Tulcán</option>
-                  <option value="Montúfar">Montúfar</option>
-                  <option value="Espejo">Espejo</option>
-                  <option value="Mira">Mira</option>
-                  <option value="Bolívar">Bolívar</option>
-                  <option value="San Pedro de Huaca">San Pedro de Huaca</option>
-                  <option value="No Presentados">No Presentados</option>
-                  <option value="Sin Cantón">Sin Cantón</option>
-                </select>
-              </div>
-              <div>
-                <label for="inputPinAdmin">PIN de Tutor</label>
-                <input type="password" id="inputPinAdmin" maxlength="8" placeholder="PIN" />
-              </div>
-              <div class="admin-btn-wrap">
-                <button type="button" id="btnEjecutarTraslado" class="btn btn-warning">
-                  Ejecutar Traslado
-                </button>
-              </div>
-            </div>
-            <div id="mensajeAdmin" class="alert hidden"></div>
-          </div>
-        </div>
-      </article>
+// Filtrar solo dígitos en cédula
+inputCedula.addEventListener('input', () => {
+  inputCedula.value = inputCedula.value.replace(/\D/g, '').slice(0, 10);
+});
 
-      <!-- TARJETA DE ACTUALIZACIÓN Y EVIDENCIA -->
-      <article class="card form-card">
-        <div class="card-header">
-          <h2>2. Confirmación de Datos y Evidencia Fotográfica</h2>
-          <p id="subtituloFormulario">
-            Completa tus datos de seguimiento y sube tu fotografía de asistencia.
-          </p>
-        </div>
+// Buscar cédula
+formBuscar.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const cedula = inputCedula.value.trim();
 
-        <form id="formRegistro">
-          <!-- BLOQUE DE DATOS ACTUALIZABLES -->
-          <div id="bloqueActualizacionDatos">
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="selectEstudia">¿Estudia actualmente? *</label>
-                <select id="selectEstudia" required>
-                  <option value="">-- Selecciona una opción --</option>
-                  <option value="Sí">Sí</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
+  if (!/^[0-9]{10}$/.test(cedula)) {
+    mostrarAlerta(mensajeBusqueda, 'Ingresa un número de cédula válido de 10 dígitos.', 'error');
+    return;
+  }
 
-              <div class="form-group">
-                <label for="selectSubtutor">Subtutor / Reasignación *</label>
-                <select id="selectSubtutor" required>
-                  <option value="">Selecciona tu subtutor o grupo...</option>
-                  <option value="Mantenerme en el actual">Mantenerme en el actual</option>
-                  <option value="Tenencia o jefatura política">Tenencia o jefatura política</option>
-                  <option value="Puntos digitales">Puntos digitales</option>
-                  <option value="Gestión documental Ximena R">Gestión documental Ximena R</option>
-                  <option value="Gestión documental Patricio E">Gestión documental Patricio E</option>
-                  <option value="Apoyo administrativo">Apoyo administrativo</option>
-                  <option value="Apoyo comunitario">Apoyo comunitario</option>
-                  <option value="Grupo Prioritario">Grupo Prioritario</option>
-                </select>
-              </div>
+  ocultarAlerta(mensajeBusqueda);
+  ocultarAlerta(mensajeGuardado);
+  ocultarAlerta(mensajeAdmin);
+  seccionResultado.classList.add('hidden');
 
-              <div class="form-group hidden" id="grupoCantonUbicacion">
-                <label for="selectCantonUbicado">Cantón donde realiza actividades *</label>
-                <select id="selectCantonUbicado">
-                  <option value="">-- Selecciona cantón --</option>
-                  <option value="Tulcán">Tulcán</option>
-                  <option value="Montúfar">Montúfar</option>
-                  <option value="Espejo">Espejo</option>
-                  <option value="Mira">Mira</option>
-                  <option value="Bolívar">Bolívar</option>
-                  <option value="San Pedro de Huaca">San Pedro de Huaca</option>
-                </select>
-              </div>
+  btnBuscar.disabled = true;
+  btnBuscar.textContent = 'Buscando...';
 
-              <div class="form-group full-width">
-                <label for="inputObservacion">Observación o novedad (opcional)</label>
-                <input
-                  type="text"
-                  id="inputObservacion"
-                  maxlength="140"
-                  placeholder="Ej: Asiste puntual / Cambio de horario autorizado"
-                />
-              </div>
-            </div>
-          </div>
+  try {
+    const url = `${API_URL}?action=buscar&cedula=${encodeURIComponent(cedula)}&_t=${Date.now()}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
 
-          <!-- BLOQUE DE FOTO / EVIDENCIA -->
-          <div class="foto-section">
-            <label class="foto-label">Fotografía de Evidencia / Asistencia *</label>
-            <p class="foto-hint">
-              Puedes tomar una foto con la cámara o seleccionar una imagen. Se guardará automáticamente con tu número de cédula.
-            </p>
+    if (!data.ok) {
+      mostrarAlerta(mensajeBusqueda, data.error || 'Error al consultar el registro.', 'error');
+      return;
+    }
 
-            <div class="foto-actions">
-              <label for="inputFotoCamara" class="btn btn-secondary">
-                📷 Tomar Foto
-              </label>
-              <input
-                type="file"
-                id="inputFotoCamara"
-                accept="image/*"
-                capture="user"
-                class="hidden-file"
-              />
+    if (!data.encontrado) {
+      mostrarAlerta(
+        mensajeBusqueda,
+        `No se encontró ningún beneficiario con la cédula ${cedula} en la Base Maestra V12.`,
+        'error'
+      );
+      return;
+    }
 
-              <label for="inputFotoGaleria" class="btn btn-outline">
-                🖼️ Subir desde Galería
-              </label>
-              <input
-                type="file"
-                id="inputFotoGaleria"
-                accept="image/*"
-                class="hidden-file"
-              />
-            </div>
+    registroActual = data.registro;
+    renderizarFichaJoven(registroActual);
+    seccionResultado.classList.remove('hidden');
+  } catch (err) {
+    mostrarAlerta(
+      mensajeBusqueda,
+      'No se pudo conectar con el servidor. Verifica tu conexión a internet e inténtalo de nuevo.',
+      'error'
+    );
+  } finally {
+    btnBuscar.disabled = false;
+    btnBuscar.textContent = 'Buscar Registro';
+  }
+});
 
-            <div id="previewContainer" class="preview-box hidden">
-              <img id="imgPreview" alt="Vista previa de evidencia" />
-              <button type="button" id="btnQuitarFoto" class="btn-remove-foto">
-                ✕ Quitar imagen
-              </button>
-            </div>
-          </div>
+// Renderizar ficha del joven
+function renderizarFichaJoven(reg) {
+  lblNombre.textContent = reg.nombre || '—';
+  lblCedula.textContent = reg.cedula || '—';
+  lblCanton.textContent = reg.canton || '—';
+  lblHojaActual.textContent = reg.hojaOrigen || '—';
+  lblTutor.textContent = reg.tutorGeneral || '—';
+  lblHorario.textContent = reg.horario || 'Por confirmar';
+  lblGrupoApoyo.textContent = reg.grupoApoyo || '—';
+  lblSubtutorActual.textContent = reg.subtutor || 'Sin asignar';
+  lblEstudiaActual.textContent = reg.estudia || 'Por confirmar';
 
-          <div class="submit-bar">
-            <button type="submit" id="btnGuardar" class="btn btn-success btn-lg">
-              Guardar Registro y Subir Evidencia
-            </button>
-          </div>
-        </form>
+  if (reg.fechaConvocatoria) {
+    lblFechaConvocatoria.textContent = reg.fechaConvocatoria;
+    bannerFechaConvocatoria.classList.remove('hidden');
+  } else {
+    bannerFechaConvocatoria.classList.add('hidden');
+  }
 
-        <div id="mensajeGuardado" class="alert hidden"></div>
-      </article>
-    </section>
-  </main>
+  limpiarFoto();
+  inputObservacion.value = '';
 
-  <footer class="footer">
-    <p>Programa Jóvenes en Acción 4 · Provincia del Carchi · Versión V12</p>
-  </footer>
+  const esSinUbicacion = reg.hojaOrigen === 'No Presentados' || reg.hojaOrigen === 'Sin Cantón';
+  if (esSinUbicacion) {
+    grupoCantonUbicacion.classList.remove('hidden');
+    selectCantonUbicado.required = true;
+  } else {
+    grupoCantonUbicacion.classList.add('hidden');
+    selectCantonUbicado.required = false;
+    selectCantonUbicado.value = '';
+  }
 
-  <script src="app.js"></script>
-</body>
-</html>
+  if (reg.yaActualizo) {
+    badgeEstado.textContent = 'Datos Confirmados';
+    badgeEstado.className = 'badge badge-done';
+    bloqueActualizacionDatos.classList.add('hidden');
+    selectEstudia.required = false;
+    selectSubtutor.required = false;
+    subtituloFormulario.textContent =
+      'Tus datos base ya fueron confirmados. Sube aquí tu nueva fotografía de asistencia o evidencia.';
+    btnGuardar.textContent = 'Subir Nueva Evidencia Fotográfica';
+  } else {
+    badgeEstado.textContent = 'Pendiente de Confirmar';
+    badgeEstado.className = 'badge badge-pending';
+    bloqueActualizacionDatos.classList.remove('hidden');
+    selectEstudia.required = true;
+    selectSubtutor.required = true;
+    selectEstudia.value = '';
+    selectSubtutor.value = 'Sin novedad (Mantiene grupo)';
+    subtituloFormulario.textContent =
+      'Confirma si estudias actualmente, verifica tu subtutor y adjunta tu fotografía de asistencia.';
+    btnGuardar.textContent = 'Guardar Registro y Subir Evidencia';
+  }
+}
+
+// Panel administrativo de traslado (PIN 2026)
+btnToggleAdmin.addEventListener('click', () => {
+  boxAdminReasignar.classList.toggle('hidden');
+  ocultarAlerta(mensajeAdmin);
+});
+
+btnEjecutarTraslado.addEventListener('click', async () => {
+  if (!registroActual) return;
+  const nuevaHoja = selectNuevaHoja.value.trim();
+  const pin = inputPinAdmin.value.trim();
+
+  if (!nuevaHoja) {
+    mostrarAlerta(mensajeAdmin, 'Selecciona la pestaña o grupo de destino.', 'error');
+    return;
+  }
+  if (!pin) {
+    mostrarAlerta(mensajeAdmin, 'Ingresa el PIN de tutor para autorizar el traslado.', 'error');
+    return;
+  }
+
+  btnEjecutarTraslado.disabled = true;
+  btnEjecutarTraslado.textContent = 'Trasladando...';
+  ocultarAlerta(mensajeAdmin);
+
+  try {
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        token: TOKEN_SEGURIDAD,
+        action: 'reasignar_hoja',
+        cedula: registroActual.cedula,
+        nuevaHoja: nuevaHoja,
+        pin: pin
+      })
+    });
+
+    const data = await resp.json();
+    if (!data.ok) {
+      mostrarAlerta(mensajeAdmin, data.error || 'No se pudo completar el traslado.', 'error');
+      return;
+    }
+
+    if (data.registro) {
+      registroActual = data.registro;
+      renderizarFichaJoven(registroActual);
+    }
+    inputPinAdmin.value = '';
+    selectNuevaHoja.value = '';
+    mostrarAlerta(
+      mensajeAdmin,
+      `✓ Registro trasladado correctamente a "${data.hojaDestino}".`,
+      'success'
+    );
+  } catch (err) {
+    mostrarAlerta(mensajeAdmin, 'Error de red al intentar trasladar el registro.', 'error');
+  } finally {
+    btnEjecutarTraslado.disabled = false;
+    btnEjecutarTraslado.textContent = 'Ejecutar Traslado';
+  }
+});
+
+// Procesamiento y compresión de imagen
+function manejarArchivoImagen(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    mostrarAlerta(mensajeGuardado, 'Por favor selecciona un archivo de imagen válido.', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX_WIDTH = 1200;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > MAX_WIDTH) {
+        height = Math.round((height * MAX_WIDTH) / width);
+        width = MAX_WIDTH;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      fotoBase64 = dataUrl.split(',')[1];
+      fotoMime = 'image/jpeg';
+
+      imgPreview.src = dataUrl;
+      previewContainer.classList.remove('hidden');
+      ocultarAlerta(mensajeGuardado);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+inputFotoCamara.addEventListener('change', (e) => manejarArchivoImagen(e.target.files[0]));
+inputFotoGaleria.addEventListener('change', (e) => manejarArchivoImagen(e.target.files[0]));
+
+btnQuitarFoto.addEventListener('click', limpiarFoto);
+
+function limpiarFoto() {
+  fotoBase64 = '';
+  inputFotoCamara.value = '';
+  inputFotoGaleria.value = '';
+  imgPreview.src = '';
+  previewContainer.classList.add('hidden');
+}
+
+// Enviar formulario y subir evidencia
+formRegistro.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!registroActual) return;
+
+  if (!fotoBase64) {
+    mostrarAlerta(mensajeGuardado, 'Debes tomar o subir una fotografía de evidencia antes de guardar.', 'error');
+    return;
+  }
+
+  const actualizarDatos = !registroActual.yaActualizo;
+  if (actualizarDatos) {
+    if (!selectEstudia.value) {
+      mostrarAlerta(mensajeGuardado, 'Selecciona si estudias actualmente.', 'error');
+      return;
+    }
+    if (!selectSubtutor.value) {
+      mostrarAlerta(mensajeGuardado, 'Selecciona la opción de Subtutor / Reasignación.', 'error');
+      return;
+    }
+    if (selectCantonUbicado.required && !selectCantonUbicado.value) {
+      mostrarAlerta(mensajeGuardado, 'Selecciona el cantón donde realizas actividades.', 'error');
+      return;
+    }
+  }
+
+  btnGuardar.disabled = true;
+  btnGuardar.textContent = 'Guardando y subiendo foto...';
+  ocultarAlerta(mensajeGuardado);
+
+  try {
+    const payload = {
+      token: TOKEN_SEGURIDAD,
+      action: 'registrar',
+      cedula: registroActual.cedula,
+      tutorGeneral: registroActual.tutorGeneral,
+      actualizarDatos: actualizarDatos,
+      estudia: actualizarDatos ? selectEstudia.value : registroActual.estudia,
+      subtutor: actualizarDatos ? selectSubtutor.value : registroActual.subtutor,
+      cantonUbicado: selectCantonUbicado.value || registroActual.hojaOrigen,
+      observacion: inputObservacion.value.trim(),
+      selfieBase64: fotoBase64,
+      selfieMime: fotoMime
+    };
+
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await resp.json();
+    if (!data.ok) {
+      mostrarAlerta(mensajeGuardado, data.error || 'Ocurrió un error al guardar.', 'error');
+      return;
+    }
+
+    mostrarAlerta(
+      mensajeGuardado,
+      `✓ ¡Registro guardado con éxito! Evidencia archivada como ${registroActual.cedula}.jpg en la carpeta de ${registroActual.tutorGeneral}.`,
+      'success'
+    );
+
+    // Recargar ficha actualizada
+    const respReload = await fetch(`${API_URL}?action=buscar&cedula=${encodeURIComponent(registroActual.cedula)}&_t=${Date.now()}`);
+    const dataReload = await respReload.json();
+    if (dataReload.ok && dataReload.encontrado) {
+      registroActual = dataReload.registro;
+      renderizarFichaJoven(registroActual);
+    } else {
+      limpiarFoto();
+    }
+  } catch (err) {
+    mostrarAlerta(
+      mensajeGuardado,
+      'Error de conexión al enviar los datos. Verifica tu señal e inténtalo nuevamente.',
+      'error'
+    );
+  } finally {
+    btnGuardar.disabled = false;
+    btnGuardar.textContent = registroActual && registroActual.yaActualizo
+      ? 'Subir Nueva Evidencia Fotográfica'
+      : 'Guardar Registro y Subir Evidencia';
+  }
+});
+
+// Utilidades de alertas
+function mostrarAlerta(el, texto, tipo) {
+  el.textContent = texto;
+  el.className = `alert alert-${tipo}`;
+  el.classList.remove('hidden');
+}
+
+function ocultarAlerta(el) {
+  el.classList.add('hidden');
+  el.textContent = '';
+}
