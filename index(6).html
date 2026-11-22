@@ -6,16 +6,20 @@
   <title>Jóvenes en Acción 4 · Carchi — Control y Evidencias</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="aurora"></div>
     <div class="topbar-inner">
-      <div class="brand">
-        <span class="badge-program">JÓVENES EN ACCIÓN 4 · CARCHI</span>
-        <h1>Registro de Asistencia, Reasignación y Evidencia</h1>
+      <div class="brand-wrap">
+        <div class="logo-box">
+          <img src="IMG_2891.jpeg" alt="MiT Jóvenes en Acción 4 Edición" class="brand-logo" />
+        </div>
+        <div class="brand">
+          <span class="badge-program">JÓVENES EN ACCIÓN 4 · CARCHI</span>
+          <h1>Registro de Asistencia, Reasignación y Evidencia</h1>
+        </div>
       </div>
       <div class="status-pill" id="apiStatusPill">
         <span class="dot"></span>
@@ -177,12 +181,15 @@
               <div class="form-group">
                 <label for="selectSubtutor">Subtutor / Reasignación *</label>
                 <select id="selectSubtutor" required>
-                  <option value="">-- Selecciona opción --</option>
-                  <option value="Sin novedad (Mantiene grupo)">Sin novedad (Mantiene grupo)</option>
-                  <option value="Ximena R.">Ximena R.</option>
-                  <option value="Patricio E.">Patricio E.</option>
+                  <option value="">Selecciona tu subtutor o grupo...</option>
+                  <option value="Mantenerme en el actual">Mantenerme en el actual</option>
+                  <option value="Tenencia o jefatura política">Tenencia o jefatura política</option>
+                  <option value="Puntos digitales">Puntos digitales</option>
+                  <option value="Gestión documental Ximena R">Gestión documental Ximena R</option>
+                  <option value="Gestión documental Patricio E">Gestión documental Patricio E</option>
+                  <option value="Apoyo administrativo">Apoyo administrativo</option>
+                  <option value="Apoyo comunitario">Apoyo comunitario</option>
                   <option value="Grupo Prioritario">Grupo Prioritario</option>
-                  <option value="Fin de Semana">Fin de Semana</option>
                 </select>
               </div>
 
