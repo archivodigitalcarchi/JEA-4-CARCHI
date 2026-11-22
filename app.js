@@ -1,408 +1,379 @@
-// ============================================================
-// CONFIGURA ESTO con la URL de tu Apps Script ya publicado
-// ============================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycby9nJ5fIwNPqOOHBPkfSASv8ewkQpOJETGo5Nun73RGBM0c9bU9pEPcbLHXcZQHY7Xj/exec';
-const TOKEN = 'JEA4Carchi2026'; // debe ser igual al TOKEN en Codigo.gs
+// =========================================================================
+// FRONTEND APP.JS — JÓVENES EN ACCIÓN 4 · CARCHI (VERSIÓN V12)
+// =========================================================================
 
-// ---- Estado ----
-let currentStep = 1;
-let registro = null; // datos del joven encontrado
-let selfieBase64 = null;
-let selfieMime = 'image/jpeg';
-let searching = false;
-let submitting = false;
+const API_URL = 'https://script.google.com/macros/s/AKfycbxqPXZgf_m5RBI8vZQTBmMjqP0comWW6mQDP1CqRpRnsj57aMO2WM-9v0-dv94rTYnJ8A/exec';
+const TOKEN_SEGURIDAD = 'JEA4Carchi2026';
 
-const $ = (id) => document.getElementById(id);
+let registroActual = null;
+let fotoBase64 = '';
+let fotoMime = 'image/jpeg';
 
-// ---------------------------------------------------------------
-// Navegación entre pasos
-// ---------------------------------------------------------------
-const STEP_META = {
-  1: { title: 'Buscar tu registro', label: 'Paso 1 de 3 — Consulta tu cédula' },
-  2: { title: 'Tus datos actuales', label: 'Paso 2 de 3 — Verifica tu ficha' },
-  3: { title: 'Evidencia y estado', label: 'Paso 3 de 3 — Registro y fotografía' },
-};
+// Elementos del DOM
+const formBuscar = document.getElementById('formBuscar');
+const inputCedula = document.getElementById('inputCedula');
+const btnBuscar = document.getElementById('btnBuscar');
+const mensajeBusqueda = document.getElementById('mensajeBusqueda');
+const seccionResultado = document.getElementById('seccionResultado');
 
-function goToStep(n) {
-  currentStep = n;
-  document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
-  if (n <= 3) {
-    $(`screen-${n}`).classList.add('active');
-    $('headerTitle').textContent = STEP_META[n].title;
-    $('stepLabel').textContent = STEP_META[n].label;
-    document.querySelectorAll('.step-dot').forEach((d) => {
-      const step = Number(d.dataset.step);
-      d.classList.toggle('active', step === n);
-      d.classList.toggle('done', step < n);
-    });
-  } else {
-    $('screen-success').classList.add('active');
-    $('headerTitle').textContent = 'Envío completado';
-    $('stepLabel').textContent = 'Proceso finalizado ✓';
-  }
-  renderFooter();
-  window.scrollTo(0, 0);
-}
+const lblNombre = document.getElementById('lblNombre');
+const badgeEstado = document.getElementById('badgeEstado');
+const bannerFechaConvocatoria = document.getElementById('bannerFechaConvocatoria');
+const lblFechaConvocatoria = document.getElementById('lblFechaConvocatoria');
+const lblCedula = document.getElementById('lblCedula');
+const lblCanton = document.getElementById('lblCanton');
+const lblHojaActual = document.getElementById('lblHojaActual');
+const lblTutor = document.getElementById('lblTutor');
+const lblHorario = document.getElementById('lblHorario');
+const lblGrupoApoyo = document.getElementById('lblGrupoApoyo');
+const lblSubtutorActual = document.getElementById('lblSubtutorActual');
+const lblEstudiaActual = document.getElementById('lblEstudiaActual');
 
-function renderFooter() {
-  const inner = $('footerInner');
-  inner.innerHTML = '';
+const btnToggleAdmin = document.getElementById('btnToggleAdmin');
+const boxAdminReasignar = document.getElementById('boxAdminReasignar');
+const selectNuevaHoja = document.getElementById('selectNuevaHoja');
+const inputPinAdmin = document.getElementById('inputPinAdmin');
+const btnEjecutarTraslado = document.getElementById('btnEjecutarTraslado');
+const mensajeAdmin = document.getElementById('mensajeAdmin');
 
-  if (currentStep === 1) {
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-primary';
-    btn.id = 'btnBuscar';
-    btn.textContent = 'Buscar';
-    btn.addEventListener('click', onBuscar);
-    inner.appendChild(btn);
-  }
+const formRegistro = document.getElementById('formRegistro');
+const bloqueActualizacionDatos = document.getElementById('bloqueActualizacionDatos');
+const subtituloFormulario = document.getElementById('subtituloFormulario');
+const selectEstudia = document.getElementById('selectEstudia');
+const selectSubtutor = document.getElementById('selectSubtutor');
+const grupoCantonUbicacion = document.getElementById('grupoCantonUbicacion');
+const selectCantonUbicado = document.getElementById('selectCantonUbicado');
+const inputObservacion = document.getElementById('inputObservacion');
 
-  if (currentStep === 2) {
-    const back = document.createElement('button');
-    back.className = 'btn btn-ghost';
-    back.textContent = 'Volver';
-    back.addEventListener('click', () => goToStep(1));
+const inputFotoCamara = document.getElementById('inputFotoCamara');
+const inputFotoGaleria = document.getElementById('inputFotoGaleria');
+const previewContainer = document.getElementById('previewContainer');
+const imgPreview = document.getElementById('imgPreview');
+const btnQuitarFoto = document.getElementById('btnQuitarFoto');
+const btnGuardar = document.getElementById('btnGuardar');
+const mensajeGuardado = document.getElementById('mensajeGuardado');
 
-    const next = document.createElement('button');
-    next.className = 'btn btn-primary';
-    next.textContent = registro && registro.yaActualizo ? 'Subir evidencia' : 'Continuar';
-    next.addEventListener('click', () => goToStep(3));
-
-    inner.appendChild(back);
-    inner.appendChild(next);
-  }
-
-  if (currentStep === 3) {
-    const back = document.createElement('button');
-    back.className = 'btn btn-ghost';
-    back.textContent = 'Volver';
-    back.addEventListener('click', () => goToStep(2));
-
-    const send = document.createElement('button');
-    send.className = 'btn btn-primary';
-    send.id = 'btnEnviar';
-    send.textContent = registro && registro.yaActualizo ? 'Enviar evidencia' : 'Guardar y enviar';
-    send.addEventListener('click', onEnviar);
-
-    inner.appendChild(back);
-    inner.appendChild(send);
-  }
-
-  if (currentStep > 3) {
-    const again = document.createElement('button');
-    again.className = 'btn btn-primary';
-    again.textContent = 'Consultar otra cédula';
-    again.addEventListener('click', resetAll);
-    inner.appendChild(again);
-  }
-}
-
-function resetAll() {
-  registro = null;
-  selfieBase64 = null;
-  $('cedulaInput').value = '';
-  $('selfiePreview').classList.remove('show');
-  $('selfieStatus').textContent = 'Aún no se ha seleccionado la foto';
-  document.querySelectorAll('#estudiaRadioGroup input').forEach((r) => (r.checked = false));
-  $('dondeEstudia').value = '';
-  $('institucionNombre').value = '';
-  $('subtutorReasignacion').value = '';
-  $('cantonUbicado').value = '';
-  $('observacionFoto').value = '';
-  $('bloqueDondeEstudia').style.display = 'none';
-  hideAlert('searchError');
-  hideAlert('searchInfo');
-  hideAlert('formError');
-  goToStep(1);
-}
-
-// ---------------------------------------------------------------
-// Alertas
-// ---------------------------------------------------------------
-function showAlert(id, msg) {
-  const el = $(id);
-  el.textContent = msg;
-  el.classList.add('show');
-}
-function hideAlert(id) {
-  $(id).classList.remove('show');
-}
-
-// ---------------------------------------------------------------
-// Mostrar/ocultar selector "¿Dónde estudias?" según Sí / No
-// ---------------------------------------------------------------
-document.querySelectorAll('#estudiaRadioGroup input').forEach((radio) => {
-  radio.addEventListener('change', (e) => {
-    const val = e.target.value;
-    if (val === 'Sí') {
-      $('bloqueDondeEstudia').style.display = 'block';
-    } else {
-      $('bloqueDondeEstudia').style.display = 'none';
-      $('dondeEstudia').value = '';
-      $('institucionNombre').value = '';
-    }
-  });
+// Filtrar solo dígitos en cédula
+inputCedula.addEventListener('input', () => {
+  inputCedula.value = inputCedula.value.replace(/\D/g, '').slice(0, 10);
 });
 
-// ---------------------------------------------------------------
-// Paso 1 → Buscar por cédula
-// ---------------------------------------------------------------
-async function onBuscar() {
-  const cedula = $('cedulaInput').value.trim();
-  hideAlert('searchError');
-  hideAlert('searchInfo');
+// Buscar cédula
+formBuscar.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const cedula = inputCedula.value.trim();
 
   if (!/^[0-9]{10}$/.test(cedula)) {
-    showAlert('searchError', 'Ingresa una cédula válida de 10 dígitos.');
-    return;
-  }
-  if (searching) return;
-  if (!API_URL || API_URL.indexOf('PEGA_AQUI') === 0) {
-    showAlert('searchError', 'La app todavía no está conectada al sistema. Contacta al administrador.');
+    mostrarAlerta(mensajeBusqueda, 'Ingresa un número de cédula válido de 10 dígitos.', 'error');
     return;
   }
 
-  searching = true;
-  const btn = $('btnBuscar');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Buscando...';
-  showAlert('searchInfo', 'Consultando tu registro...');
+  ocultarAlerta(mensajeBusqueda);
+  ocultarAlerta(mensajeGuardado);
+  ocultarAlerta(mensajeAdmin);
+  seccionResultado.classList.add('hidden');
+
+  btnBuscar.disabled = true;
+  btnBuscar.textContent = 'Buscando...';
 
   try {
-    const res = await fetch(`${API_URL}?action=buscar&cedula=${encodeURIComponent(cedula)}`);
-    const data = await res.json();
+    const url = `${API_URL}?action=buscar&cedula=${encodeURIComponent(cedula)}&_t=${Date.now()}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
 
     if (!data.ok) {
-      hideAlert('searchInfo');
-      showAlert('searchError', data.error || 'No se pudo completar la búsqueda. Intenta de nuevo.');
+      mostrarAlerta(mensajeBusqueda, data.error || 'Error al consultar el registro.', 'error');
       return;
     }
+
     if (!data.encontrado) {
-      hideAlert('searchInfo');
-      showAlert('searchError', 'No encontramos ningún registro con esa cédula. Verifica el número o consulta con tu tutor.');
+      mostrarAlerta(
+        mensajeBusqueda,
+        `No se encontró ningún beneficiario con la cédula ${cedula} en la Base Maestra V12.`,
+        'error'
+      );
       return;
     }
 
-    hideAlert('searchInfo');
-    registro = data.registro;
-    llenarFicha(registro);
-    configurarModoPaso3(registro);
-    goToStep(2);
+    registroActual = data.registro;
+    renderizarFichaJoven(registroActual);
+    seccionResultado.classList.remove('hidden');
   } catch (err) {
-    hideAlert('searchInfo');
-    showAlert('searchError', 'No se pudo conectar con el sistema. Revisa tu conexión a internet e intenta de nuevo.');
+    mostrarAlerta(
+      mensajeBusqueda,
+      'No se pudo conectar con el servidor. Verifica tu conexión a internet e inténtalo de nuevo.',
+      'error'
+    );
   } finally {
-    searching = false;
-    btn.disabled = false;
-    btn.textContent = 'Buscar';
+    btnBuscar.disabled = false;
+    btnBuscar.textContent = 'Buscar Registro';
+  }
+});
+
+// Renderizar ficha del joven
+function renderizarFichaJoven(reg) {
+  lblNombre.textContent = reg.nombre || '—';
+  lblCedula.textContent = reg.cedula || '—';
+  lblCanton.textContent = reg.canton || '—';
+  lblHojaActual.textContent = reg.hojaOrigen || '—';
+  lblTutor.textContent = reg.tutorGeneral || '—';
+  lblHorario.textContent = reg.horario || 'Por confirmar';
+  lblGrupoApoyo.textContent = reg.grupoApoyo || '—';
+  lblSubtutorActual.textContent = reg.subtutor || 'Sin asignar';
+  lblEstudiaActual.textContent = reg.estudia || 'Por confirmar';
+
+  if (reg.fechaConvocatoria) {
+    lblFechaConvocatoria.textContent = reg.fechaConvocatoria;
+    bannerFechaConvocatoria.classList.remove('hidden');
+  } else {
+    bannerFechaConvocatoria.classList.add('hidden');
+  }
+
+  limpiarFoto();
+  inputObservacion.value = '';
+
+  const esSinUbicacion = reg.hojaOrigen === 'No Presentados' || reg.hojaOrigen === 'Sin Cantón';
+  if (esSinUbicacion) {
+    grupoCantonUbicacion.classList.remove('hidden');
+    selectCantonUbicado.required = true;
+  } else {
+    grupoCantonUbicacion.classList.add('hidden');
+    selectCantonUbicado.required = false;
+    selectCantonUbicado.value = '';
+  }
+
+  if (reg.yaActualizo) {
+    badgeEstado.textContent = 'Datos Confirmados';
+    badgeEstado.className = 'badge badge-done';
+    bloqueActualizacionDatos.classList.add('hidden');
+    selectEstudia.required = false;
+    selectSubtutor.required = false;
+    subtituloFormulario.textContent =
+      'Tus datos base ya fueron confirmados. Sube aquí tu nueva fotografía de asistencia o evidencia.';
+    btnGuardar.textContent = 'Subir Nueva Evidencia Fotográfica';
+  } else {
+    badgeEstado.textContent = 'Pendiente de Confirmar';
+    badgeEstado.className = 'badge badge-pending';
+    bloqueActualizacionDatos.classList.remove('hidden');
+    selectEstudia.required = true;
+    selectSubtutor.required = true;
+    selectEstudia.value = '';
+    selectSubtutor.value = 'Sin novedad (Mantiene grupo)';
+    subtituloFormulario.textContent =
+      'Confirma si estudias actualmente, verifica tu subtutor y adjunta tu fotografía de asistencia.';
+    btnGuardar.textContent = 'Guardar Registro y Subir Evidencia';
   }
 }
 
-function llenarFicha(r) {
-  $('fName').textContent = r.nombre || '—';
-  $('fCedula').textContent = 'Cédula: ' + (r.cedula || '—');
-  $('fTutorBadge').textContent = 'Tutor General: ' + (r.tutorGeneral || 'Otros Tutores');
-  $('fCanton').textContent = r.canton || '—';
-  $('fHoja').textContent = r.hojaBase || '—';
-  $('fHorario').textContent = r.horario || '—';
-  $('fGrupoApoyo').textContent = r.grupoApoyo || '—';
-  $('fSubtutorActual').textContent = r.subtutor || 'Sin asignar';
-  $('fCantonUbicacionActual').textContent = r.cantonUbicado || r.canton || 'Por confirmar';
-  $('fEstudiaActual').textContent = r.estudia || 'Por confirmar';
+// Panel administrativo de traslado (PIN 2026)
+btnToggleAdmin.addEventListener('click', () => {
+  boxAdminReasignar.classList.toggle('hidden');
+  ocultarAlerta(mensajeAdmin);
+});
 
-  const banner = $('fichaStatusBanner');
-  if (r.yaActualizo) {
-    banner.style.background = '#E7F3ED';
-    banner.style.color = '#1B4B43';
-    banner.textContent = '✓ Cambios realizados: ya actualizaste tus datos. Ahora solo está habilitado subir evidencia fotográfica.';
-  } else {
-    banner.style.background = '#EAF1EE';
-    banner.style.color = '#1B4B43';
-    banner.textContent = 'En el siguiente paso podrás registrar si estudias (Universidad, Instituto o Colegio), tu Subtutor/Reasignación, el cantón donde estás ubicado y subir tu evidencia fotográfica.';
+btnEjecutarTraslado.addEventListener('click', async () => {
+  if (!registroActual) return;
+  const nuevaHoja = selectNuevaHoja.value.trim();
+  const pin = inputPinAdmin.value.trim();
+
+  if (!nuevaHoja) {
+    mostrarAlerta(mensajeAdmin, 'Selecciona la pestaña o grupo de destino.', 'error');
+    return;
   }
-}
+  if (!pin) {
+    mostrarAlerta(mensajeAdmin, 'Ingresa el PIN de tutor para autorizar el traslado.', 'error');
+    return;
+  }
 
-function configurarModoPaso3(r) {
-  document.querySelectorAll('#estudiaRadioGroup input').forEach((el) => (el.checked = false));
-  $('dondeEstudia').value = '';
-  $('institucionNombre').value = '';
-  $('subtutorReasignacion').value = '';
-  $('cantonUbicado').value = '';
-  $('bloqueDondeEstudia').style.display = 'none';
-  selfieBase64 = null;
-  $('selfiePreview').classList.remove('show');
-  $('selfieStatus').textContent = 'Aún no se ha seleccionado la foto';
-  $('observacionFoto').value = '';
+  btnEjecutarTraslado.disabled = true;
+  btnEjecutarTraslado.textContent = 'Trasladando...';
+  ocultarAlerta(mensajeAdmin);
 
-  if (r.yaActualizo) {
-    $('cardDatosEditable').style.display = 'none';
-    $('cardDatosBloqueado').style.display = 'block';
-    $('estudiaGuardadoTexto').textContent = r.estudia || 'Registrado';
-    $('subtutorGuardadoTexto').textContent = r.subtutor || 'Registrado';
-    $('cantonGuardadoTexto').textContent = r.cantonUbicado || r.canton || 'Registrado';
-  } else {
-    $('cardDatosEditable').style.display = 'block';
-    $('cardDatosBloqueado').style.display = 'none';
-    // Preseleccionar si ya tenía subtutor o cantón
-    if (r.subtutor && r.subtutor !== 'Sin asignar') {
-      const optS = Array.from($('subtutorReasignacion').options).find(o => o.value === r.subtutor);
-      if (optS) $('subtutorReasignacion').value = r.subtutor;
+  try {
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        token: TOKEN_SEGURIDAD,
+        action: 'reasignar_hoja',
+        cedula: registroActual.cedula,
+        nuevaHoja: nuevaHoja,
+        pin: pin
+      })
+    });
+
+    const data = await resp.json();
+    if (!data.ok) {
+      mostrarAlerta(mensajeAdmin, data.error || 'No se pudo completar el traslado.', 'error');
+      return;
     }
+
+    if (data.registro) {
+      registroActual = data.registro;
+      renderizarFichaJoven(registroActual);
+    }
+    inputPinAdmin.value = '';
+    selectNuevaHoja.value = '';
+    mostrarAlerta(
+      mensajeAdmin,
+      `✓ Registro trasladado correctamente a "${data.hojaDestino}".`,
+      'success'
+    );
+  } catch (err) {
+    mostrarAlerta(mensajeAdmin, 'Error de red al intentar trasladar el registro.', 'error');
+  } finally {
+    btnEjecutarTraslado.disabled = false;
+    btnEjecutarTraslado.textContent = 'Ejecutar Traslado';
   }
-}
+});
 
-// ---------------------------------------------------------------
-// Evidencia fotográfica: captura + compresión en canvas
-// ---------------------------------------------------------------
-$('btnCapture').addEventListener('click', () => $('selfieFile').click());
-
-$('selfieFile').addEventListener('change', (e) => {
-  const file = e.target.files[0];
+// Procesamiento y compresión de imagen
+function manejarArchivoImagen(file) {
   if (!file) return;
-
-  $('selfieStatus').textContent = 'Procesando foto...';
+  if (!file.type.startsWith('image/')) {
+    mostrarAlerta(mensajeGuardado, 'Por favor selecciona un archivo de imagen válido.', 'error');
+    return;
+  }
 
   const reader = new FileReader();
   reader.onload = (ev) => {
     const img = new Image();
     img.onload = () => {
-      const MAX_W = 900;
-      const scale = Math.min(1, MAX_W / img.width);
-      const w = Math.round(img.width * scale);
-      const h = Math.round(img.height * scale);
+      const MAX_WIDTH = 1200;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > MAX_WIDTH) {
+        height = Math.round((height * MAX_WIDTH) / width);
+        width = MAX_WIDTH;
+      }
 
       const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
+      ctx.drawImage(img, 0, 0, width, height);
 
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
-      selfieBase64 = dataUrl.split(',')[1];
-      selfieMime = 'image/jpeg';
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      fotoBase64 = dataUrl.split(',')[1];
+      fotoMime = 'image/jpeg';
 
-      $('selfiePreview').src = dataUrl;
-      $('selfiePreview').classList.add('show');
-      $('selfieStatus').textContent = 'Foto lista ✓';
+      imgPreview.src = dataUrl;
+      previewContainer.classList.remove('hidden');
+      ocultarAlerta(mensajeGuardado);
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
-});
-
-// ---------------------------------------------------------------
-// Paso 3 → Enviar
-// ---------------------------------------------------------------
-async function onEnviar() {
-  hideAlert('formError');
-
-  let estadoEstudiaFinal = registro.estudia || '';
-  let subtutorFinal = registro.subtutor || '';
-  let cantonUbicadoFinal = registro.cantonUbicado || '';
-  let actualizarDatos = false;
-
-  if (!registro.yaActualizo) {
-    const estudiaEl = document.querySelector('#estudiaRadioGroup input:checked');
-    if (!estudiaEl) {
-      showAlert('formError', 'Selecciona si estudias actualmente (Sí o No).');
-      return;
-    }
-
-    if (estudiaEl.value === 'Sí') {
-      const donde = $('dondeEstudia').value;
-      if (!donde) {
-        showAlert('formError', 'Selecciona dónde estudias: Universidad, Instituto o Colegio.');
-        return;
-      }
-      const inst = $('institucionNombre').value.trim();
-      estadoEstudiaFinal = inst ? `Sí - ${donde} (${inst})` : `Sí - ${donde}`;
-    } else {
-      estadoEstudiaFinal = 'No estudia';
-    }
-
-    subtutorFinal = $('subtutorReasignacion').value;
-    if (!subtutorFinal) {
-      showAlert('formError', 'Selecciona tu Subtutor / Reasignación.');
-      return;
-    }
-
-    cantonUbicadoFinal = $('cantonUbicado').value;
-    if (!cantonUbicadoFinal) {
-      showAlert('formError', 'Selecciona en qué cantón estás ubicado actualmente.');
-      return;
-    }
-
-    actualizarDatos = true;
-  }
-
-  if (!selfieBase64) {
-    showAlert('formError', 'Toma o sube tu evidencia fotográfica antes de enviar.');
-    return;
-  }
-  if (submitting) return;
-
-  submitting = true;
-  const btn = $('btnEnviar');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Enviando...';
-
-  const payload = {
-    action: 'registrar',
-    token: TOKEN,
-    cedula: registro.cedula,
-    nombre: registro.nombre,
-    tutorGeneral: registro.tutorGeneral,
-    canton: registro.canton,
-    hojaBase: registro.hojaBase,
-    hojaOrigen: registro.hojaOrigen,
-    filaOrigen: registro.filaOrigen,
-    actualizarDatos: actualizarDatos,
-    estudia: estadoEstudiaFinal,
-    subtutor: subtutorFinal,
-    cantonUbicado: cantonUbicadoFinal,
-    observacion: $('observacionFoto').value.trim(),
-    selfieBase64: selfieBase64,
-    selfieMime: selfieMime,
-  };
-
-  try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-
-    if (!data.ok) {
-      showAlert('formError', data.error || 'No se pudo guardar el registro. Intenta de nuevo.');
-      return;
-    }
-
-    if (actualizarDatos) {
-      $('successTitle').textContent = 'Cambios realizados y evidencia enviada';
-      $('successDetail').textContent =
-        `Tus datos (${estadoEstudiaFinal} · ${subtutorFinal} · ${cantonUbicadoFinal}) quedaron guardados y bloqueados, y tu evidencia fotográfica fue enviada a tu Tutor General.`;
-    } else {
-      $('successTitle').textContent = 'Evidencia fotográfica enviada';
-      $('successDetail').textContent =
-        'Tu nueva evidencia fotográfica se registró correctamente en la carpeta de tu Tutor General.';
-    }
-
-    goToStep(4);
-  } catch (err) {
-    showAlert('formError', 'No se pudo conectar con el sistema. Revisa tu conexión a internet e intenta de nuevo.');
-  } finally {
-    submitting = false;
-    btn.disabled = false;
-    btn.textContent = registro && registro.yaActualizo ? 'Enviar evidencia' : 'Guardar y enviar';
-  }
 }
 
-// ---------------------------------------------------------------
-// Inicio
-// ---------------------------------------------------------------
-$('cedulaInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') onBuscar();
+inputFotoCamara.addEventListener('change', (e) => manejarArchivoImagen(e.target.files[0]));
+inputFotoGaleria.addEventListener('change', (e) => manejarArchivoImagen(e.target.files[0]));
+
+btnQuitarFoto.addEventListener('click', limpiarFoto);
+
+function limpiarFoto() {
+  fotoBase64 = '';
+  inputFotoCamara.value = '';
+  inputFotoGaleria.value = '';
+  imgPreview.src = '';
+  previewContainer.classList.add('hidden');
+}
+
+// Enviar formulario y subir evidencia
+formRegistro.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!registroActual) return;
+
+  if (!fotoBase64) {
+    mostrarAlerta(mensajeGuardado, 'Debes tomar o subir una fotografía de evidencia antes de guardar.', 'error');
+    return;
+  }
+
+  const actualizarDatos = !registroActual.yaActualizo;
+  if (actualizarDatos) {
+    if (!selectEstudia.value) {
+      mostrarAlerta(mensajeGuardado, 'Selecciona si estudias actualmente.', 'error');
+      return;
+    }
+    if (!selectSubtutor.value) {
+      mostrarAlerta(mensajeGuardado, 'Selecciona la opción de Subtutor / Reasignación.', 'error');
+      return;
+    }
+    if (selectCantonUbicado.required && !selectCantonUbicado.value) {
+      mostrarAlerta(mensajeGuardado, 'Selecciona el cantón donde realizas actividades.', 'error');
+      return;
+    }
+  }
+
+  btnGuardar.disabled = true;
+  btnGuardar.textContent = 'Guardando y subiendo foto...';
+  ocultarAlerta(mensajeGuardado);
+
+  try {
+    const payload = {
+      token: TOKEN_SEGURIDAD,
+      action: 'registrar',
+      cedula: registroActual.cedula,
+      tutorGeneral: registroActual.tutorGeneral,
+      actualizarDatos: actualizarDatos,
+      estudia: actualizarDatos ? selectEstudia.value : registroActual.estudia,
+      subtutor: actualizarDatos ? selectSubtutor.value : registroActual.subtutor,
+      cantonUbicado: selectCantonUbicado.value || registroActual.hojaOrigen,
+      observacion: inputObservacion.value.trim(),
+      selfieBase64: fotoBase64,
+      selfieMime: fotoMime
+    };
+
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await resp.json();
+    if (!data.ok) {
+      mostrarAlerta(mensajeGuardado, data.error || 'Ocurrió un error al guardar.', 'error');
+      return;
+    }
+
+    mostrarAlerta(
+      mensajeGuardado,
+      `✓ ¡Registro guardado con éxito! Evidencia archivada como ${registroActual.cedula}.jpg en la carpeta de ${registroActual.tutorGeneral}.`,
+      'success'
+    );
+
+    // Recargar ficha actualizada
+    const respReload = await fetch(`${API_URL}?action=buscar&cedula=${encodeURIComponent(registroActual.cedula)}&_t=${Date.now()}`);
+    const dataReload = await respReload.json();
+    if (dataReload.ok && dataReload.encontrado) {
+      registroActual = dataReload.registro;
+      renderizarFichaJoven(registroActual);
+    } else {
+      limpiarFoto();
+    }
+  } catch (err) {
+    mostrarAlerta(
+      mensajeGuardado,
+      'Error de conexión al enviar los datos. Verifica tu señal e inténtalo nuevamente.',
+      'error'
+    );
+  } finally {
+    btnGuardar.disabled = false;
+    btnGuardar.textContent = registroActual && registroActual.yaActualizo
+      ? 'Subir Nueva Evidencia Fotográfica'
+      : 'Guardar Registro y Subir Evidencia';
+  }
 });
 
-renderFooter();
+// Utilidades de alertas
+function mostrarAlerta(el, texto, tipo) {
+  el.textContent = texto;
+  el.className = `alert alert-${tipo}`;
+  el.classList.remove('hidden');
+}
+
+function ocultarAlerta(el) {
+  el.classList.add('hidden');
+  el.textContent = '';
+}
