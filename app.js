@@ -40,6 +40,8 @@ const formRegistro = document.getElementById('formRegistro');
 const bloqueActualizacionDatos = document.getElementById('bloqueActualizacionDatos');
 const subtituloFormulario = document.getElementById('subtituloFormulario');
 const selectEstudia = document.getElementById('selectEstudia');
+const grupoDondeEstudia = document.getElementById('grupoDondeEstudia');
+const inputDondeEstudia = document.getElementById('inputDondeEstudia');
 const selectSubtutor = document.getElementById('selectSubtutor');
 const grupoCantonUbicacion = document.getElementById('grupoCantonUbicacion');
 const selectCantonUbicado = document.getElementById('selectCantonUbicado');
@@ -56,6 +58,18 @@ const mensajeGuardado = document.getElementById('mensajeGuardado');
 // Filtrar solo dígitos en cédula
 inputCedula.addEventListener('input', () => {
   inputCedula.value = inputCedula.value.replace(/\D/g, '').slice(0, 10);
+});
+
+// Desplegar "¿Dónde estudia?" al elegir "Sí"
+selectEstudia.addEventListener('change', () => {
+  if (selectEstudia.value === 'Sí') {
+    grupoDondeEstudia.classList.remove('hidden');
+    inputDondeEstudia.required = true;
+  } else {
+    grupoDondeEstudia.classList.add('hidden');
+    inputDondeEstudia.required = false;
+    inputDondeEstudia.value = '';
+  }
 });
 
 // Buscar cédula
@@ -148,6 +162,8 @@ function renderizarFichaJoven(reg) {
     bloqueActualizacionDatos.classList.add('hidden');
     selectEstudia.required = false;
     selectSubtutor.required = false;
+    grupoDondeEstudia.classList.add('hidden');
+    inputDondeEstudia.required = false;
     subtituloFormulario.textContent =
       'Tus datos base ya fueron confirmados. Sube aquí tu nueva fotografía de asistencia o evidencia.';
     btnGuardar.textContent = 'Subir Nueva Evidencia Fotográfica';
@@ -159,6 +175,9 @@ function renderizarFichaJoven(reg) {
     selectSubtutor.required = true;
     selectEstudia.value = '';
     selectSubtutor.value = '';
+    grupoDondeEstudia.classList.add('hidden');
+    inputDondeEstudia.required = false;
+    inputDondeEstudia.value = '';
     subtituloFormulario.textContent =
       'Confirma si estudias actualmente, verifica tu subtutor y adjunta tu fotografía de asistencia.';
     btnGuardar.textContent = 'Guardar Registro y Subir Evidencia';
@@ -296,6 +315,10 @@ formRegistro.addEventListener('submit', async (e) => {
       mostrarAlerta(mensajeGuardado, 'Selecciona si estudias actualmente.', 'error');
       return;
     }
+    if (selectEstudia.value === 'Sí' && !inputDondeEstudia.value.trim()) {
+      mostrarAlerta(mensajeGuardado, 'Escribe el nombre de la institución educativa donde estudias.', 'error');
+      return;
+    }
     if (!selectSubtutor.value) {
       mostrarAlerta(mensajeGuardado, 'Selecciona la opción de Subtutor / Reasignación.', 'error');
       return;
@@ -310,6 +333,15 @@ formRegistro.addEventListener('submit', async (e) => {
   btnGuardar.textContent = 'Guardando y subiendo foto...';
   ocultarAlerta(mensajeGuardado);
 
+  const textoDondeEstudia = actualizarDatos && selectEstudia.value === 'Sí'
+    ? inputDondeEstudia.value.trim()
+    : '';
+
+  const observacionFinal = [
+    textoDondeEstudia ? `Estudia en: ${textoDondeEstudia}` : '',
+    inputObservacion.value.trim()
+  ].filter(Boolean).join(' | ');
+
   try {
     const payload = {
       token: TOKEN_SEGURIDAD,
@@ -318,9 +350,10 @@ formRegistro.addEventListener('submit', async (e) => {
       tutorGeneral: registroActual.tutorGeneral,
       actualizarDatos: actualizarDatos,
       estudia: actualizarDatos ? selectEstudia.value : registroActual.estudia,
+      dondeEstudia: textoDondeEstudia,
       subtutor: actualizarDatos ? selectSubtutor.value : registroActual.subtutor,
       cantonUbicado: selectCantonUbicado.value || registroActual.hojaOrigen,
-      observacion: inputObservacion.value.trim(),
+      observacion: observacionFinal,
       selfieBase64: fotoBase64,
       selfieMime: fotoMime
     };
