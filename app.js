@@ -1,5 +1,5 @@
 // =========================================================================
-// FRONTEND APP.JS — JÓVENES EN ACCIÓN 4 · CARCHI (VERSIÓN V12 - REV 4)
+// FRONTEND APP.JS — JÓVENES EN ACCIÓN 4 · CARCHI (VERSIÓN V12 - REV 5)
 // =========================================================================
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbxqPXZgf_m5RBI8vZQTBmMjqP0comWW6mQDP1CqRpRnsj57aMO2WM-9v0-dv94rTYnJ8A/exec';
@@ -10,8 +10,7 @@ let fotoBase64 = '';
 let fotoMime = 'image/jpeg';
 
 let certBase64 = '';
-let certMime = 'application/pdf';
-let certNombreOriginal = '';
+let certMime = 'image/jpeg';
 
 // Elementos del DOM
 const formBuscar = document.getElementById('formBuscar');
@@ -59,14 +58,17 @@ const btnQuitarFoto = document.getElementById('btnQuitarFoto');
 const btnGuardar = document.getElementById('btnGuardar');
 const mensajeGuardado = document.getElementById('mensajeGuardado');
 
-// Elementos Sección 3: Certificados
+// Elementos Sección 3: Certificados (Solo Imagen Comprimida)
 const seccionCertificados = document.getElementById('seccionCertificados');
 const formCertificado = document.getElementById('formCertificado');
-const inputNombreCurso = document.getElementById('inputNombreCurso');
+const selectPlataformaCert = document.getElementById('selectPlataformaCert');
 const selectSemanaCert = document.getElementById('selectSemanaCert');
+const inputNombreCurso = document.getElementById('inputNombreCurso');
+const inputCertCamara = document.getElementById('inputCertCamara');
 const inputArchivoCertificado = document.getElementById('inputArchivoCertificado');
-const certFileInfo = document.getElementById('certFileInfo');
-const lblNombreArchivoCert = document.getElementById('lblNombreArchivoCert');
+const previewCertContainer = document.getElementById('previewCertContainer');
+const imgCertPreview = document.getElementById('imgCertPreview');
+const lblInfoPesoCert = document.getElementById('lblInfoPesoCert');
 const btnQuitarCert = document.getElementById('btnQuitarCert');
 const btnSubirCertificado = document.getElementById('btnSubirCertificado');
 const mensajeCertificado = document.getElementById('mensajeCertificado');
@@ -275,11 +277,11 @@ btnEjecutarTraslado.addEventListener('click', async () => {
   }
 });
 
-// Procesamiento y compresión de imagen de asistencia
-function manejarArchivoImagen(file) {
+// Función genérica de compresión de imágenes (para ahorro de espacio)
+function comprimirImagen(file, maxWidth, calidad, callbackOk, callbackError) {
   if (!file) return;
   if (!file.type.startsWith('image/')) {
-    mostrarAlerta(mensajeGuardado, 'Por favor selecciona un archivo de imagen válido.', 'error');
+    callbackError('Formato no permitido. Selecciona únicamente una fotografía o captura de pantalla (JPG/PNG), no PDF.');
     return;
   }
 
@@ -287,13 +289,12 @@ function manejarArchivoImagen(file) {
   reader.onload = (ev) => {
     const img = new Image();
     img.onload = () => {
-      const MAX_WIDTH = 1200;
       let width = img.width;
       let height = img.height;
 
-      if (width > MAX_WIDTH) {
-        height = Math.round((height * MAX_WIDTH) / width);
-        width = MAX_WIDTH;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
       }
 
       const canvas = document.createElement('canvas');
@@ -302,21 +303,41 @@ function manejarArchivoImagen(file) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
 
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-      fotoBase64 = dataUrl.split(',')[1];
-      fotoMime = 'image/jpeg';
+      const dataUrl = canvas.toDataURL('image/jpeg', calidad);
+      const base64 = dataUrl.split(',')[1];
+      const pesoKb = Math.round((base64.length * 3) / 4 / 1024);
 
-      imgPreview.src = dataUrl;
-      previewContainer.classList.remove('hidden');
-      ocultarAlerta(mensajeGuardado);
+      callbackOk({
+        dataUrl: dataUrl,
+        base64: base64,
+        mime: 'image/jpeg',
+        pesoKb: pesoKb
+      });
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 }
 
-inputFotoCamara.addEventListener('change', (e) => manejarArchivoImagen(e.target.files[0]));
-inputFotoGaleria.addEventListener('change', (e) => manejarArchivoImagen(e.target.files[0]));
+// Procesamiento de foto de asistencia
+function manejarFotoAsistencia(file) {
+  comprimirImagen(
+    file,
+    1200,
+    0.80,
+    (res) => {
+      fotoBase64 = res.base64;
+      fotoMime = res.mime;
+      imgPreview.src = res.dataUrl;
+      previewContainer.classList.remove('hidden');
+      ocultarAlerta(mensajeGuardado);
+    },
+    (errMsg) => mostrarAlerta(mensajeGuardado, errMsg, 'error')
+  );
+}
+
+inputFotoCamara.addEventListener('change', (e) => manejarFotoAsistencia(e.target.files[0]));
+inputFotoGaleria.addEventListener('change', (e) => manejarFotoAsistencia(e.target.files[0]));
 btnQuitarFoto.addEventListener('click', limpiarFoto);
 
 function limpiarFoto() {
@@ -400,11 +421,10 @@ formRegistro.addEventListener('submit', async (e) => {
 
     mostrarAlerta(
       mensajeGuardado,
-      `✓ ¡Registro guardado con éxito! Se ha desbloqueado abajo la Sección 3 para que subas tus certificados de Capacítate para el Empleo.`,
+      '✓ ¡Registro guardado con éxito! Se ha desbloqueado abajo la Sección 3 para que subas las fotos de tus certificados.',
       'success'
     );
 
-    // Recargar ficha actualizada y desbloquear Sección 3
     const respReload = await fetch(`${API_URL}?action=buscar&cedula=${encodeURIComponent(registroActual.cedula)}&_t=${Date.now()}`);
     const dataReload = await respReload.json();
     if (dataReload.ok && dataReload.encontrado) {
@@ -430,75 +450,69 @@ formRegistro.addEventListener('submit', async (e) => {
 });
 
 // =========================================================================
-// SECCIÓN 3: CARGA DE CERTIFICADOS (PDF O IMAGEN)
+// SECCIÓN 3: CARGA DE CERTIFICADOS (ÚNICAMENTE IMAGEN COMPRIMIDA)
 // =========================================================================
 
-inputArchivoCertificado.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+function manejarFotoCertificado(file) {
+  comprimirImagen(
+    file,
+    1200,
+    0.78,
+    (res) => {
+      certBase64 = res.base64;
+      certMime = res.mime;
+      imgCertPreview.src = res.dataUrl;
+      lblInfoPesoCert.textContent = `✓ Imagen optimizada (${res.pesoKb} KB)`;
+      previewCertContainer.classList.remove('hidden');
+      ocultarAlerta(mensajeCertificado);
+    },
+    (errMsg) => {
+      limpiarCertificado();
+      mostrarAlerta(mensajeCertificado, errMsg, 'error');
+    }
+  );
+}
 
-  const esPdf = file.type === 'application/pdf';
-  const esImagen = file.type.startsWith('image/');
-
-  if (!esPdf && !esImagen) {
-    mostrarAlerta(mensajeCertificado, 'Formato no válido. Sube únicamente un archivo PDF o una imagen (JPG/PNG).', 'error');
-    limpiarCertificado();
-    return;
-  }
-
-  if (file.size > 8 * 1024 * 1024) {
-    mostrarAlerta(mensajeCertificado, 'El archivo supera el límite de 8 MB. Comprímelo e inténtalo de nuevo.', 'error');
-    limpiarCertificado();
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const dataUrl = ev.target.result;
-    certBase64 = dataUrl.split(',')[1];
-    certMime = file.type;
-    certNombreOriginal = file.name;
-
-    lblNombreArchivoCert.textContent = `📎 ${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
-    certFileInfo.classList.remove('hidden');
-    ocultarAlerta(mensajeCertificado);
-  };
-  reader.readAsDataURL(file);
-});
-
+inputCertCamara.addEventListener('change', (e) => manejarFotoCertificado(e.target.files[0]));
+inputArchivoCertificado.addEventListener('change', (e) => manejarFotoCertificado(e.target.files[0]));
 btnQuitarCert.addEventListener('click', limpiarCertificado);
 
 function limpiarCertificado() {
   certBase64 = '';
-  certMime = 'application/pdf';
-  certNombreOriginal = '';
+  certMime = 'image/jpeg';
+  inputCertCamara.value = '';
   inputArchivoCertificado.value = '';
-  lblNombreArchivoCert.textContent = '';
-  certFileInfo.classList.add('hidden');
+  imgCertPreview.src = '';
+  previewCertContainer.classList.add('hidden');
 }
 
 formCertificado.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!registroActual) return;
 
-  const curso = inputNombreCurso.value.trim();
+  const plataforma = selectPlataformaCert.value.trim();
   const semana = selectSemanaCert.value.trim();
+  const curso = inputNombreCurso.value.trim();
 
-  if (!curso) {
-    mostrarAlerta(mensajeCertificado, 'Escribe el nombre del curso aprobado.', 'error');
+  if (!plataforma) {
+    mostrarAlerta(mensajeCertificado, 'Selecciona la plataforma donde realizaste el curso.', 'error');
     return;
   }
   if (!semana) {
     mostrarAlerta(mensajeCertificado, 'Selecciona la semana de entrega.', 'error');
     return;
   }
+  if (!curso) {
+    mostrarAlerta(mensajeCertificado, 'Escribe el nombre del curso aprobado.', 'error');
+    return;
+  }
   if (!certBase64) {
-    mostrarAlerta(mensajeCertificado, 'Selecciona el archivo PDF o imagen de tu certificado antes de enviar.', 'error');
+    mostrarAlerta(mensajeCertificado, 'Toma una foto o sube una captura de pantalla de tu certificado.', 'error');
     return;
   }
 
   btnSubirCertificado.disabled = true;
-  btnSubirCertificado.textContent = 'Subiendo certificado...';
+  btnSubirCertificado.textContent = 'Subiendo foto de certificado...';
   ocultarAlerta(mensajeCertificado);
 
   try {
@@ -512,7 +526,7 @@ formCertificado.addEventListener('submit', async (e) => {
       estudia: registroActual.estudia,
       subtutor: registroActual.subtutor,
       cantonUbicado: registroActual.hojaOrigen,
-      observacion: `CERTIFICADO (${semana}): ${curso} [${certNombreOriginal}]`,
+      observacion: `CERTIFICADO [${plataforma}] (${semana}): ${curso}`,
       selfieBase64: certBase64,
       selfieMime: certMime
     };
@@ -531,7 +545,7 @@ formCertificado.addEventListener('submit', async (e) => {
 
     mostrarAlerta(
       mensajeCertificado,
-      `✓ ¡Certificado "${curso}" (${semana}) registrado con éxito! Puedes subir aquí tu segundo certificado semanal.`,
+      `✓ ¡Certificado "${curso}" (${plataforma} · ${semana}) guardado como imagen ligera! Ya puedes subir tu siguiente certificado.`,
       'success'
     );
     inputNombreCurso.value = '';
@@ -544,7 +558,7 @@ formCertificado.addEventListener('submit', async (e) => {
     );
   } finally {
     btnSubirCertificado.disabled = false;
-    btnSubirCertificado.textContent = '📤 Subir Certificado de Capacitación';
+    btnSubirCertificado.textContent = '📤 Subir Foto de Certificado';
   }
 });
 
