@@ -511,7 +511,6 @@ input[type="password"]:focus {
   cursor: pointer;
 }
 
-/* Estilos Tarjeta 3: Certificados */
 .cert-card {
   border: 2px solid #bae6fd;
   background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 35%);
