@@ -72,7 +72,6 @@
           <span id="badgeEstado" class="badge badge-pending">Pendiente</span>
         </div>
 
-        <!-- BANNER DESTACADO DE FECHA DE CONVOCATORIA -->
         <div id="bannerFechaConvocatoria" class="fecha-banner hidden">
           <span class="fecha-icon">📅</span>
           <div>
@@ -196,7 +195,6 @@
                 </select>
               </div>
 
-              <!-- CAMPO DESPLEGABLE AL ELEGIR "Sí" -->
               <div class="form-group full-width hidden" id="grupoDondeEstudia" style="display: none;">
                 <label for="inputDondeEstudia">¿Dónde estudia? (Institución / Universidad / Colegio) *</label>
                 <input
@@ -371,7 +369,6 @@
     <p>Programa Jóvenes en Acción 4 · Provincia del Carchi · Versión V12</p>
   </footer>
 
-  <!-- LÓGICA COMPLETA INTEGRADA (AUTOCONTENIDA) -->
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbxqPXZgf_m5RBI8vZQTBmMjqP0comWW6mQDP1CqRpRnsj57aMO2WM-9v0-dv94rTYnJ8A/exec';
     const TOKEN_SEGURIDAD = 'JEA4Carchi2026';
@@ -440,6 +437,26 @@
     const btnQuitarCert = document.getElementById('btnQuitarCert');
     const btnSubirCertificado = document.getElementById('btnSubirCertificado');
     const mensajeCertificado = document.getElementById('mensajeCertificado');
+
+    async function postConReintento(payload, boton, textoBase) {
+      for (let intento = 1; intento <= 3; intento++) {
+        try {
+          if (intento > 1 && boton) {
+            boton.textContent = `${textoBase} (reintento ${intento}/3)...`;
+          }
+          const resp = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          return await resp.json();
+        } catch (err) {
+          if (intento === 3) throw err;
+          await new Promise(r => setTimeout(r, 1200));
+        }
+      }
+    }
 
     function toggleCampoDondeEstudia(valor) {
       if (!grupoDondeEstudia || !inputDondeEstudia) return;
@@ -594,19 +611,14 @@
       ocultarAlerta(mensajeAdmin);
 
       try {
-        const resp = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            token: TOKEN_SEGURIDAD,
-            action: 'reasignar_hoja',
-            cedula: registroActual.cedula,
-            nuevaHoja: nuevaHoja,
-            pin: pin
-          })
-        });
+        const data = await postConReintento({
+          token: TOKEN_SEGURIDAD,
+          action: 'reasignar_hoja',
+          cedula: registroActual.cedula,
+          nuevaHoja: nuevaHoja,
+          pin: pin
+        }, btnEjecutarTraslado, 'Trasladando');
 
-        const data = await resp.json();
         if (!data.ok) {
           mostrarAlerta(mensajeAdmin, data.error || 'No se pudo completar el traslado.', 'error');
           return;
@@ -658,24 +670,39 @@
 
           callbackOk({ dataUrl, base64, mime: 'image/jpeg', pesoKb });
         };
+        img.onerror = () => callbackError('No se pudo procesar la imagen. Intenta con una captura de pantalla.');
         img.src = ev.target.result;
       };
       reader.readAsDataURL(file);
     }
 
     function manejarFotoAsistencia(file) {
+      if (!file) return;
+      btnGuardar.disabled = true;
+      btnGuardar.textContent = 'Optimizando foto...';
+
       comprimirImagen(
         file,
-        1200,
-        0.80,
+        850,
+        0.68,
         (res) => {
           fotoBase64 = res.base64;
           fotoMime = res.mime;
           imgPreview.src = res.dataUrl;
           previewContainer.classList.remove('hidden');
           ocultarAlerta(mensajeGuardado);
+          btnGuardar.disabled = false;
+          btnGuardar.textContent = registroActual && registroActual.yaActualizo
+            ? 'Subir Nueva Evidencia Fotográfica'
+            : 'Guardar Registro y Subir Evidencia';
         },
-        (errMsg) => mostrarAlerta(mensajeGuardado, errMsg, 'error')
+        (errMsg) => {
+          mostrarAlerta(mensajeGuardado, errMsg, 'error');
+          btnGuardar.disabled = false;
+          btnGuardar.textContent = registroActual && registroActual.yaActualizo
+            ? 'Subir Nueva Evidencia Fotográfica'
+            : 'Guardar Registro y Subir Evidencia';
+        }
       );
     }
 
@@ -738,6 +765,8 @@
           token: TOKEN_SEGURIDAD,
           action: 'registrar',
           cedula: registroActual.cedula,
+          hojaOrigen: registroActual.hojaOrigen,
+          filaOrigen: registroActual.filaOrigen,
           tutorGeneral: registroActual.tutorGeneral,
           actualizarDatos: actualizarDatos,
           estudia: actualizarDatos ? selectEstudia.value : registroActual.estudia,
@@ -749,17 +778,20 @@
           selfieMime: fotoMime
         };
 
-        const resp = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await resp.json();
+        const data = await postConReintento(payload, btnGuardar, 'Guardando foto');
         if (!data.ok) {
           mostrarAlerta(mensajeGuardado, data.error || 'Ocurrió un error al guardar.', 'error');
           return;
         }
+
+        if (actualizarDatos) {
+          registroActual.yaActualizo = true;
+          registroActual.estudia = payload.estudia;
+          registroActual.subtutor = payload.subtutor;
+          if (data.hojaDestino) registroActual.hojaOrigen = data.hojaDestino;
+          if (data.filaDestino) registroActual.filaOrigen = data.filaDestino;
+        }
+        renderizarFichaJoven(registroActual);
 
         mostrarAlerta(
           mensajeGuardado,
@@ -767,14 +799,6 @@
           'success'
         );
 
-        const respReload = await fetch(`${API_URL}?action=buscar&cedula=${encodeURIComponent(registroActual.cedula)}&_t=${Date.now()}`);
-        const dataReload = await respReload.json();
-        if (dataReload.ok && dataReload.encontrado) {
-          registroActual = dataReload.registro;
-          renderizarFichaJoven(registroActual);
-        } else {
-          limpiarFoto();
-        }
         seccionCertificados.classList.remove('hidden');
         seccionCertificados.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } catch (err) {
@@ -792,10 +816,14 @@
     });
 
     function manejarFotoCertificado(file) {
+      if (!file) return;
+      btnSubirCertificado.disabled = true;
+      btnSubirCertificado.textContent = 'Optimizando certificado...';
+
       comprimirImagen(
         file,
-        1200,
-        0.78,
+        950,
+        0.72,
         (res) => {
           certBase64 = res.base64;
           certMime = res.mime;
@@ -803,10 +831,14 @@
           lblInfoPesoCert.textContent = `✓ Imagen optimizada (${res.pesoKb} KB)`;
           previewCertContainer.classList.remove('hidden');
           ocultarAlerta(mensajeCertificado);
+          btnSubirCertificado.disabled = false;
+          btnSubirCertificado.textContent = '📤 Subir Foto de Certificado';
         },
         (errMsg) => {
           limpiarCertificado();
           mostrarAlerta(mensajeCertificado, errMsg, 'error');
+          btnSubirCertificado.disabled = false;
+          btnSubirCertificado.textContent = '📤 Subir Foto de Certificado';
         }
       );
     }
@@ -859,6 +891,8 @@
           action: 'registrar',
           tipoEvidencia: 'CERTIFICADO',
           cedula: registroActual.cedula,
+          hojaOrigen: registroActual.hojaOrigen,
+          filaOrigen: registroActual.filaOrigen,
           tutorGeneral: registroActual.tutorGeneral,
           actualizarDatos: false,
           estudia: registroActual.estudia,
@@ -869,13 +903,7 @@
           selfieMime: certMime
         };
 
-        const resp = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await resp.json();
+        const data = await postConReintento(payload, btnSubirCertificado, 'Subiendo certificado');
         if (!data.ok) {
           mostrarAlerta(mensajeCertificado, data.error || 'No se pudo subir el certificado.', 'error');
           return;
